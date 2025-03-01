@@ -37,7 +37,6 @@ const UploadSubmission: React.FC = () => {
         setUploadsRemaining(uploadsResponse.data.uploadsRemaining);
       } catch (error) {
         console.error('Error fetching submission requirements:', error);
-        toast.error('Failed to load submission requirements');
       }
     };
     

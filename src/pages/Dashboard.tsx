@@ -39,7 +39,9 @@ interface UserStats {
   total_submissions: number;
   best_f1: number;
   uploads_today: number;
-  uploads_remaining: number;
+  submissions_remaining: number;
+  max_daily_submissions: number;
+  next_reset: string;
 }
 
 const Dashboard: React.FC = () => {
@@ -51,9 +53,18 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get(`${API_URL}/scores`);
-        setScores(response.data.scores);
-        setStats(response.data.stats);
+        const [scoresResponse, remainingResponse] = await Promise.all([
+          axios.get(`${API_URL}/scores`),
+          axios.get(`${API_URL}/remaining-submissions`)
+        ]);
+        
+        setScores(scoresResponse.data.scores);
+        setStats({
+          ...scoresResponse.data.stats,
+          submissions_remaining: remainingResponse.data.submissions_remaining,
+          max_daily_submissions: remainingResponse.data.max_daily_submissions,
+          next_reset: remainingResponse.data.next_reset
+        });
       } catch (error: any) {
         console.error('Error fetching user data:', error);
         toast.error(error.response?.data?.error || 'Failed to load dashboard data');
@@ -153,8 +164,11 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <TrendingUp className="h-10 w-10 mr-3" />
             <div>
-              <p className="text-purple-100 text-sm">Uploads Remaining</p>
-              <p className="text-2xl font-bold">{stats?.uploads_remaining || 0}</p>
+              <p className="text-purple-100 text-sm">Submissions Remaining</p>
+              <p className="text-2xl font-bold">{stats?.submissions_remaining ?? 0}</p>
+              <p className="text-xs mt-1 opacity-75">
+                {stats?.max_daily_submissions} daily limit • Resets {new Date(stats?.next_reset).toLocaleTimeString()}
+              </p>
             </div>
           </div>
         </Card>
@@ -186,7 +200,7 @@ const Dashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {scores.slice(0, 10).map((score, index) => (
+                  {scores.slice(0, 10).map((score: Score, index: number) => (
                     <tr key={index}>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                         {new Date(score.timestamp).toLocaleDateString()}
