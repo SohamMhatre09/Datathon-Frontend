@@ -21,7 +21,6 @@ const UploadSubmission: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [result, setResult] = useState<SubmissionResult | null>(null);
-  const [requiredRowCount, setRequiredRowCount] = useState<number>(0);
   const [csvPreview, setCsvPreview] = useState<string[]>([]);
   const [uploadsRemaining, setUploadsRemaining] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,15 +28,7 @@ const UploadSubmission: React.FC = () => {
   useEffect(() => {
     const fetchRequirements = async () => {
       try {
-        // Fetch row count requirement
-        const rowCountResponse = await axios.get(`${API_URL}/row-count`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        setRequiredRowCount(rowCountResponse.data.rowCount);
-        
-        // Fetch user's remaining upload count
+        // Keep only the uploads remaining fetch
         const uploadsResponse = await axios.get(`${API_URL}/uploads-remaining`, {
           headers: {
             Authorization: `Bearer ${token}`
@@ -183,9 +174,6 @@ const UploadSubmission: React.FC = () => {
         <ul className="list-disc pl-5 mb-4">
           <li>Upload a CSV file with predictions (0 or 1) for each transaction</li>
           <li>Required column: <code>isFraud</code> or <code>FraudLabel</code></li>
-          {requiredRowCount > 0 && (
-            <li>File must contain exactly {requiredRowCount} rows</li>
-          )}
           <li>File size limit: 5MB</li>
         </ul>
         {uploadsRemaining !== null && (
