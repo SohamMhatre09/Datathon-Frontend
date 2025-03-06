@@ -9,9 +9,14 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface LeaderboardEntry {
   user_id: string;
-  f1_score: number;
-  accuracy: number;
-  last_submission: string;
+  item_accuracy: number;
+  l0_accuracy?: number;
+  l1_accuracy?: number;
+  l2_accuracy?: number;
+  l3_accuracy?: number;
+  l4_accuracy?: number;
+  brand_accuracy?: number;
+  timestamp: string;
 }
 
 const Leaderboard: React.FC = () => {
@@ -55,6 +60,11 @@ const Leaderboard: React.FC = () => {
     return user && user.username === userId;
   };
 
+  const formatAccuracy = (value?: number) => {
+    if (value === undefined) return 'N/A';
+    return `${(value * 100).toFixed(2)}%`;
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[calc(100vh-64px)]">
@@ -68,7 +78,7 @@ const Leaderboard: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Competition Leaderboard</h1>
-          <p className="text-gray-600">Top performers ranked by F1 score</p>
+          <p className="text-gray-600">Top performers ranked by Item Accuracy</p>
         </div>
         <button
           onClick={handleRefresh}
@@ -100,13 +110,28 @@ const Leaderboard: React.FC = () => {
                   User
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  F1 Score
+                  Item Accuracy
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Accuracy
+                  L0
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Submission
+                  L1
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  L2
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  L3
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  L4
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Brand
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Submission Date
                 </th>
               </tr>
             </thead>
@@ -145,20 +170,35 @@ const Leaderboard: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{entry.f1_score.toFixed(4)}</div>
+                    <div className="text-sm text-gray-900 font-semibold">{formatAccuracy(entry.item_accuracy)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{entry.accuracy.toFixed(4)}</div>
+                    <div className="text-sm text-gray-900">{formatAccuracy(entry.l0_accuracy)}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{formatAccuracy(entry.l1_accuracy)}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{formatAccuracy(entry.l2_accuracy)}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{formatAccuracy(entry.l3_accuracy)}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{formatAccuracy(entry.l4_accuracy)}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{formatAccuracy(entry.brand_accuracy)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(entry.last_submission).toLocaleString()}
+                    {new Date(entry.timestamp).toLocaleString()}
                   </td>
                 </tr>
               ))}
               
               {leaderboard.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={10} className="px-6 py-4 text-center text-sm text-gray-500">
                     No entries yet
                   </td>
                 </tr>

@@ -28,14 +28,14 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              {/* <Route 
+              <Route 
                 path="/upload" 
                 element={
                   <ProtectedRoute>
                     <UploadSubmission />
                   </ProtectedRoute>
                 } 
-              /> */}
+              />
               <Route 
                 path="/change-password" 
                 element={

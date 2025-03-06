@@ -30,18 +30,19 @@ ChartJS.register(
 );
 
 interface Score {
-  f1: number;
-  accuracy: number;
+  item_accuracy?: number;
+  accuracy?: number;
+  f1?: number;
   timestamp: string;
 }
 
 interface UserStats {
   total_submissions: number;
-  best_f1: number;
+  best_f1?: number | null;
   uploads_today: number;
   submissions_remaining: number;
-  max_daily_submissions: number;
-  next_reset: string;
+  max_daily_submissions?: number;
+  next_reset?: string;
 }
 
 const Dashboard: React.FC = () => {
@@ -76,20 +77,20 @@ const Dashboard: React.FC = () => {
     fetchUserData();
   }, []);
 
-  // Prepare chart data
+  // Prepare chart data - safely handling undefined values
   const chartData = {
     labels: scores.map(score => new Date(score.timestamp).toLocaleDateString()),
     datasets: [
       {
         label: 'F1 Score',
-        data: scores.map(score => score.f1),
+        data: scores.map(score => score.f1 || 0),
         borderColor: 'rgb(79, 70, 229)',
         backgroundColor: 'rgba(79, 70, 229, 0.5)',
         tension: 0.3,
       },
       {
-        label: 'Accuracy',
-        data: scores.map(score => score.accuracy),
+        label: 'Item Accuracy',
+        data: scores.map(score => score.accuracy || score.item_accuracy || 0),
         borderColor: 'rgb(16, 185, 129)',
         backgroundColor: 'rgba(16, 185, 129, 0.5)',
         tension: 0.3,
@@ -124,6 +125,12 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // Function to safely format numbers with a default value
+  const formatNumber = (value: number | null | undefined, decimals = 4) => {
+    if (value === null || value === undefined) return 'N/A';
+    return typeof value === 'number' ? value.toFixed(decimals) : 'N/A';
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
@@ -134,8 +141,8 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <Award className="h-10 w-10 mr-3" />
             <div>
-              <p className="text-indigo-100 text-sm">Best F1 Score</p>
-              <p className="text-2xl font-bold">{stats?.best_f1?.toFixed(4) || 'N/A'}</p>
+              <p className="text-indigo-100 text-sm">Best Score</p>
+              <p className="text-2xl font-bold">{formatNumber(stats?.best_f1)}</p>
             </div>
           </div>
         </Card>
@@ -166,9 +173,11 @@ const Dashboard: React.FC = () => {
             <div>
               <p className="text-purple-100 text-sm">Submissions Remaining</p>
               <p className="text-2xl font-bold">{stats?.submissions_remaining ?? 0}</p>
-              <p className="text-xs mt-1 opacity-75">
-                {stats?.max_daily_submissions} daily limit • Resets {new Date(stats?.next_reset).toLocaleTimeString()}
-              </p>
+              {stats?.max_daily_submissions && stats?.next_reset && (
+                <p className="text-xs mt-1 opacity-75">
+                  {stats.max_daily_submissions} daily limit • Resets {new Date(stats.next_reset).toLocaleTimeString()}
+                </p>
+              )}
             </div>
           </div>
         </Card>
@@ -195,8 +204,7 @@ const Dashboard: React.FC = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">F1</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Accuracy</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Accuracy</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -206,10 +214,7 @@ const Dashboard: React.FC = () => {
                         {new Date(score.timestamp).toLocaleDateString()}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                        {score.f1.toFixed(4)}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                        {score.accuracy.toFixed(4)}
+                        {formatNumber(score.accuracy || score.item_accuracy)}
                       </td>
                     </tr>
                   ))}

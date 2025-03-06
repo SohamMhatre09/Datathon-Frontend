@@ -8,10 +8,15 @@ import Button from '../components/Button';
 import { Upload, FileText, AlertCircle, CheckCircle, X } from 'lucide-react';
 
 interface SubmissionResult {
-  f1_score: number;
-  accuracy: number;
+  item_accuracy: number;
+  brand_accuracy?: number;
+  l0_accuracy?: number;
+  l1_accuracy?: number;
+  l2_accuracy?: number;
+  l3_accuracy?: number;
+  l4_accuracy?: number;
   timestamp: string;
-  uploadsRemaining: number;
+  submissionsRemaining: number;
 }
 
 const UploadSubmission: React.FC = () => {
@@ -22,19 +27,18 @@ const UploadSubmission: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [result, setResult] = useState<SubmissionResult | null>(null);
   const [csvPreview, setCsvPreview] = useState<string[]>([]);
-  const [uploadsRemaining, setUploadsRemaining] = useState<number | null>(null);
+  const [submissionsRemaining, setSubmissionsRemaining] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchRequirements = async () => {
       try {
-        // Keep only the uploads remaining fetch
-        const uploadsResponse = await axios.get(`${API_URL}/uploads-remaining`, {
+        const uploadsResponse = await axios.get(`${API_URL}/submissions-remaining`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
-        setUploadsRemaining(uploadsResponse.data.uploadsRemaining);
+        setSubmissionsRemaining(uploadsResponse.data.submissionsRemaining);
       } catch (error) {
         console.error('Error fetching submission requirements:', error);
       }
@@ -92,8 +96,17 @@ const UploadSubmission: React.FC = () => {
       // Basic validation for required columns
       if (rows.length > 0) {
         const headers = rows[0].toLowerCase();
-        if (!headers.includes('isfraud') && !headers.includes('fraudlabel')) {
-          toast.error('CSV must contain a column named "isFraud" or "FraudLabel"');
+        if (!headers.includes('walmart_id')) {
+          toast.error('CSV must contain a column named "walmart_id"');
+          return;
+        }
+        
+        // Check for category columns
+        const requiredColumns = ['details_brand', 'l0_category', 'l1_category', 'l2_category', 'l3_category', 'l4_category'];
+        const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+        
+        if (missingColumns.length > 0) {
+          toast.error(`CSV is missing required columns: ${missingColumns.join(', ')}`);
         }
       }
     };
@@ -130,7 +143,7 @@ const UploadSubmission: React.FC = () => {
       });
       
       setResult(response.data);
-      setUploadsRemaining(response.data.uploadsRemaining);
+      setSubmissionsRemaining(response.data.submissionsRemaining);
       toast.success('File uploaded successfully!');
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -144,8 +157,8 @@ const UploadSubmission: React.FC = () => {
         toast.error(`Daily upload limit exceeded. Limit resets at ${nextReset}`);
       } else {
         // Handle other errors
-        const errorMessage = serverError?.details 
-          ? `${serverError.error}: ${serverError.details}`
+        const errorMessage = serverError?.error 
+          ? serverError.error
           : 'Upload failed. Please check file format and try again.';
         toast.error(errorMessage);
       }
@@ -165,19 +178,20 @@ const UploadSubmission: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Submit Fraud Prediction Model</h1>
+      <h1 className="text-2xl font-bold mb-4">Submit Product Categorization Model</h1>
       
       {/* Submission Info */}
       <Card className="mb-6 p-4">
         <h2 className="font-semibold text-lg mb-2">Submission Requirements</h2>
         <ul className="list-disc pl-5 mb-4">
-          <li>Upload a CSV file with predictions (0 or 1) for each transaction</li>
-          <li>Required column: <code>isFraud</code> or <code>FraudLabel</code></li>
+          <li>Upload a CSV file with product categorization predictions for each item</li>
+          <li>Required columns: <code>walmart_id</code>, <code>details_Brand</code>, <code>L0_category</code>, <code>L1_category</code>, <code>L2_category</code>, <code>L3_category</code>, <code>L4_category</code></li>
           <li>File size limit: 5MB</li>
+          <li>All product IDs in the dataset must be included</li>
         </ul>
-        {uploadsRemaining !== null && (
+        {submissionsRemaining !== null && (
           <div className="text-sm mt-2">
-            <p>Uploads remaining today: <span className="font-medium">{uploadsRemaining}</span></p>
+            <p>Submissions remaining today: <span className="font-medium">{submissionsRemaining}</span></p>
           </div>
         )}
       </Card>
@@ -268,24 +282,73 @@ const UploadSubmission: React.FC = () => {
             <h2 className="text-lg font-semibold">Submission Results</h2>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="bg-gray-50 p-3 rounded">
-              <p className="text-sm text-gray-500">F1 Score</p>
-              <p className="text-xl font-bold">{(result.f1_score * 100).toFixed(2)}%</p>
+              <p className="text-sm text-gray-500">Item Accuracy</p>
+              <p className="text-xl font-bold">{(result.item_accuracy * 100).toFixed(2)}%</p>
             </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <p className="text-sm text-gray-500">Accuracy</p>
-              <p className="text-xl font-bold">{(result.accuracy * 100).toFixed(2)}%</p>
-            </div>
+            {result.brand_accuracy !== undefined && (
+              <div className="bg-gray-50 p-3 rounded">
+                <p className="text-sm text-gray-500">Brand Accuracy</p>
+                <p className="text-xl font-bold">{(result.brand_accuracy * 100).toFixed(2)}%</p>
+              </div>
+            )}
           </div>
+          
+          {/* Category level accuracies */}
+          {(result.l0_accuracy !== undefined || result.l1_accuracy !== undefined ||
+            result.l2_accuracy !== undefined || result.l3_accuracy !== undefined ||
+            result.l4_accuracy !== undefined) && (
+            <div className="mb-4">
+              <h3 className="text-md font-semibold mb-2">Category Level Accuracies</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {result.l0_accuracy !== undefined && (
+                  <div className="bg-gray-50 p-2 rounded">
+                    <p className="text-xs text-gray-500">L0 Category</p>
+                    <p className="text-lg font-bold">{(result.l0_accuracy * 100).toFixed(2)}%</p>
+                  </div>
+                )}
+                {result.l1_accuracy !== undefined && (
+                  <div className="bg-gray-50 p-2 rounded">
+                    <p className="text-xs text-gray-500">L1 Category</p>
+                    <p className="text-lg font-bold">{(result.l1_accuracy * 100).toFixed(2)}%</p>
+                  </div>
+                )}
+                {result.l2_accuracy !== undefined && (
+                  <div className="bg-gray-50 p-2 rounded">
+                    <p className="text-xs text-gray-500">L2 Category</p>
+                    <p className="text-lg font-bold">{(result.l2_accuracy * 100).toFixed(2)}%</p>
+                  </div>
+                )}
+                {result.l3_accuracy !== undefined && (
+                  <div className="bg-gray-50 p-2 rounded">
+                    <p className="text-xs text-gray-500">L3 Category</p>
+                    <p className="text-lg font-bold">{(result.l3_accuracy * 100).toFixed(2)}%</p>
+                  </div>
+                )}
+                {result.l4_accuracy !== undefined && (
+                  <div className="bg-gray-50 p-2 rounded">
+                    <p className="text-xs text-gray-500">L4 Category</p>
+                    <p className="text-lg font-bold">{(result.l4_accuracy * 100).toFixed(2)}%</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           
           <p className="mt-4 text-sm text-gray-500">
             Submitted on {new Date(result.timestamp).toLocaleString()}
           </p>
           
           <p className="mt-2 text-sm">
-            Uploads remaining today: <span className="font-medium">{result.uploadsRemaining}</span>
+            Submissions remaining today: <span className="font-medium">{result.submissionsRemaining}</span>
           </p>
+          
+          <div className="mt-4 bg-blue-50 p-3 rounded border border-blue-100">
+            <p className="text-sm">
+              <span className="font-semibold">Note:</span> Your best item accuracy score will be used for the leaderboard ranking.
+            </p>
+          </div>
         </Card>
       )}
     </div>
